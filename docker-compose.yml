@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  spark-master:
+    build: .
+    container_name: spark-master
+    depends_on:
+      - demo-database
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ./data:/opt/spark-data
+    environment:
+      - SPARK_LOCAL_IP=spark-master
+      - SPARK_WORKLOAD=master
+  spark-worker-1:
+    build: .
+    container_name: spark-worker-1
+    ports:
+      - "9091:8080"
+      - "7000:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-1
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ./data:/opt/spark-data
+  spark-worker-2:
+    build: .
+    container_name: spark-worker-2
+    ports:
+      - "9092:8080"
+      - "7001:7000"
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
+      - SPARK_WORKLOAD=worker
+      - SPARK_LOCAL_IP=spark-worker-2
+    volumes:
+      - ./apps:/opt/spark-apps
+      - ./data:/opt/spark-data
+
+  demo-database:
+    image: postgres:11.7-alpine
+    container_name: demo-database
+    volumes:
+      - postgres_vol_pyspark:/var/lib/postgresql
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: mta_data
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: pass
+
+volumes:
+  postgres_vol_pyspark:
+    driver: local
